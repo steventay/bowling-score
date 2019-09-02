@@ -1,43 +1,9 @@
-// Type alias to represent points and bowled result
-type Points = Int
-type Bowled = Int
-
-
-/**
- * Special symbols that annotate the scores of a bowling game
- */
-val Strike = 'X'
-val Spare = '/'
-val Miss = '-'
-val Unknown = '_' // unknown score in the current frame
-
-val Annotations = Map(
-  Miss -> 0,
-  Strike -> 10,
-  Spare -> -1
-)
-
-
-/**
- * Contains a list of frame played. Initialises to an empty scorecard, i.e. no frames played.
- */
-case class ScoreCard(frames: Seq[Frame] = Nil)
-
-/**
- * A frame is a round of a bowling and constitutes 1/10th of a game.
- *
- * @param num    sequence number of the frame. From 1 to 10
- * @param result result of the frame from 1 to 2 throws
- * @param score  score of the current frame
- * @param total  running total of the game
- */
-case class Frame(num: Int, result: Seq[Bowled], score: Points, total: Points)
+import BowlingGame._
 
 /**
  * Basic model of a bowling game. Creates a new score card and scores the game.
  */
 class BowlingGame {
-
   /**
    * Creates a new game and returns a new score card
    */
@@ -61,13 +27,53 @@ class BowlingGame {
    * @param throws additional throws by the player in a frame
    */
   def validate(t: Bowled, throws: Bowled*): Unit = {
-    require(t != Spare, "Invalid score. You cannot score a spare on the first throw!")
-    val bowled = (t +: throws).map { t =>
-      if (t == Spare) 10 - t else
-        Annotations.getOrElse(t.toChar, t)
-    }.sum
-    require(bowled >= 0, "Invalid score. Minimum pins bowled is 0!")
-    require(bowled <= 10, "Invalid score. Maximum pins bowled is 10")
+    require(throws.size <= 1, "Only 2 throws allowed in a frame!") // Doesn't consider 10th frame yet.
+    require(t != Spare, s"Invalid score. You cannot score a spare on the first throw!")
+    require(!throws.contains(Strike), "Invalid score. You cannot score a strike on the second throw!")
+    val b1 = Notations.getOrElse(t.toChar, t)
+    val bowled = (b1 +: throws).map { b =>
+      if (b == Spare) 10 - b1 else
+        Notations.getOrElse(b.toChar, b)
+    }
+    require(bowled.forall(ValidThrow.contains), "Invalid score. Minimum bowl score is 0 and maximum bowl score is 10")
+    require(bowled.sum <= 10, "Invalid score. Maximum bowl score is 10!")
   }
-
 }
+
+object BowlingGame {
+  // Type alias to represent points and bowled result
+  type Points = Int
+  type Bowled = Int
+
+  /**
+   * Special symbols that annotate the scores of a bowling game
+   */
+  val Strike = 'X'
+  val Spare = '/'
+  val Miss = '-'
+  val Unknown = '_' // unknown score in the current frame
+
+  private val Notations = Map(
+    Miss -> 0,
+    Strike -> 10,
+    Spare -> -1
+  )
+
+  private val ValidThrow = 0 to 10
+}
+
+/**
+ * Contains a list of frame played. Initialises to an empty scorecard, i.e. no frames played.
+ */
+case class ScoreCard(frames: Seq[Frame] = Nil)
+
+/**
+ * A frame is a round of a bowling and constitutes 1/10th of a game.
+ *
+ * @param num    sequence number of the frame. From 1 to 10
+ * @param result result of the frame from 1 to 2 throws
+ * @param score  score of the current frame
+ * @param total  running total of the game
+ */
+case class Frame(num: Int, result: Seq[Bowled], score: Points, total: Points)
+
