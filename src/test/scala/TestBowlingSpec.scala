@@ -1,52 +1,67 @@
+import BowlingGame.Bowled
 import org.scalatest.FlatSpec
 
 class TestBowlingSpec extends FlatSpec {
-  val game = new BowlingGame
+
+  val Game = BowlingGame
 
   "A new bowling game" should "have an empty score card" in {
-    assert(game.newGame().frames.isEmpty)
+    assert(BowlingGame.newGame.frames.isEmpty)
   }
 
   "A bowling game" should "pass valid scores" in {
-    game.validate('-', '-')
-    game.validate('X')
-    game.validate(4, 5)
-    game.validate('-', '/')
+    Game.validate('-', '-')
+    Game.validate('X')
+    Game.validate(4, 5)
+    Game.validate('-', '/')
   }
 
   it should "fail more than 2 throws" in {
     assertThrows[IllegalArgumentException] {
-      game.validate(1, 2, 3)
+      Game.validate(1, 2, 3)
     }
   }
 
   it should "fail when a spare is thrown in the first throw" in {
     assertThrows[IllegalArgumentException] {
-      game.validate('/')
+      Game.validate('/')
     }
   }
 
   it should "fail when a strike is recorded in the second throw" in {
     assertThrows[IllegalArgumentException] {
-      game.validate(5, 'X')
+      Game.validate(5, 'X')
+    }
+  }
+
+  it should "fail when a strike is recorded but a second throw is scored" in {
+    assertThrows[IllegalArgumentException] {
+      Game.validate('X', '-')
     }
   }
 
   it should "fail when pins bowled is less than 0" in {
     assertThrows[IllegalArgumentException] {
-      game.validate('X', -10)
+      Game.validate('X', -10)
     }
   }
 
   it should "fail when pins bowled is more than 10" in {
     assertThrows[IllegalArgumentException] {
-      game.validate('-', 20)
+      Game.validate('-', 20)
     }
   }
 
   it should "fail when total is more than 10" in {
     assertThrows[IllegalArgumentException] {
-      game.validate(9, 8)
+      Game.validate(9, 8)
     }
+  }
+
+  "The score card" should "score open frames correctly" in {
+    val fn: (ScoreCard, Bowled, Bowled *) => ScoreCard = Game.score
+    val sc = fn(fn(fn(fn(Game.newGame, 1, 2), 3, 4), 4, 5), '-', 5)
+    assert(sc.runningTotal == Seq(3, 10, 19, 24))
+    assert(sc.gameScore == 24)
   }
 }
