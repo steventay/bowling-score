@@ -2,21 +2,26 @@
 type Points = Int
 type Bowled = Int
 
+
 /**
  * Special symbols that annotate the scores of a bowling game
  */
-val annotations = Map(
-  '-' -> 0, // a miss
-  'X' -> 10, // strike
-  '/' -> -1, // spare
-  '_' -> -999 // unknown score in the current frame
+val Strike = 'X'
+val Spare = '/'
+val Miss = '-'
+val Unknown = '_' // unknown score in the current frame
+
+val Annotations = Map(
+  Miss -> 0,
+  Strike -> 10,
+  Spare -> -1
 )
 
 
 /**
  * Contains a list of frame played. Initialises to an empty scorecard, i.e. no frames played.
  */
-case class ScoreCard(frames: List[Frame] = Nil)
+case class ScoreCard(frames: Seq[Frame] = Nil)
 
 /**
  * A frame is a round of a bowling and constitutes 1/10th of a game.
@@ -26,7 +31,7 @@ case class ScoreCard(frames: List[Frame] = Nil)
  * @param score  score of the current frame
  * @param total  running total of the game
  */
-case class Frame(num: Int, result: List[Bowled], score: Points, total: Points)
+case class Frame(num: Int, result: Seq[Bowled], score: Points, total: Points)
 
 /**
  * Basic model of a bowling game. Creates a new score card and scores the game.
@@ -47,5 +52,22 @@ class BowlingGame {
    * @return updated score card of the frame, including the running total of the game
    */
   def score(sc: ScoreCard, t1: Bowled, throws: Bowled*): ScoreCard = ???
+
+
+  /**
+   * Checks the bowled scores are valid
+   *
+   * @param t      pins bowled in a single throw
+   * @param throws additional throws by the player in a frame
+   */
+  def validate(t: Bowled, throws: Bowled*): Unit = {
+    require(t != Spare, "Invalid score. You cannot score a spare on the first throw!")
+    val bowled = (t +: throws).map { t =>
+      if (t == Spare) 10 - t else
+        Annotations.getOrElse(t.toChar, t)
+    }.sum
+    require(bowled >= 0, "Invalid score. Minimum pins bowled is 0!")
+    require(bowled <= 10, "Invalid score. Maximum pins bowled is 10")
+  }
 
 }
