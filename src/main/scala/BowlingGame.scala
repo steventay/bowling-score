@@ -143,6 +143,8 @@ object BowlingGame {
    * @param throws additional throws by the player in a frame
    */
   def validate(sc: ScoreCard, t: Bowled, throws: Bowled*): Unit = {
+    assert(sc.lastFrameNum + 1 <= 10, "Game has already ended!")
+
     if (sc.lastFrameNum + 1 != 10) {
       require(throws.size <= 1, "Only 2 throws allowed in a non-final frame!")
       if (t == Strike)

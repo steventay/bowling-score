@@ -39,6 +39,14 @@ class TestBowlingSpec extends FlatSpec {
     }
   }
 
+  it should "fail when we try to enter a score after the final frame" in {
+    assertThrows[AssertionError] {
+      val frames = (10 to 1 by -1).map { i => Frame(i, Seq('-', 5), 5) }
+      val sc = ScoreCard(frames)
+      Game.validate(sc, 1, 2, 3)
+    }
+  }
+
   it should "fail when a spare is thrown in the first throw" in {
     assertThrows[IllegalArgumentException] {
       Game.validate(sc, '/')
