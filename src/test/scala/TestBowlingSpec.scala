@@ -104,4 +104,31 @@ class TestBowlingSpec extends FlatSpec {
     assert(sc.gameScore == 80)
     assert(sc.lastFrameNum == 4)
   }
+
+  it should "score last frames correctly" in {
+    val frames = (9 to 1 by -1).map { i => Frame(i, Seq('-', '-'), 0) }
+    val sc = Game.score(ScoreCard(frames), 'X', 'X', 'X')
+    assert(sc.frameScores == Seq(0, 0, 0, 0, 0, 0, 0, 0, 0, 30))
+    assert(sc.runningTotal == Seq(0, 0, 0, 0, 0, 0, 0, 0, 0, 30))
+    assert(sc.gameScore == 30)
+  }
+
+  it should "score a 200 point game correctly" in {
+    val fn: (ScoreCard, Bowled, Bowled*) => ScoreCard = Game.score
+
+    val sc = fn(fn(fn(fn(fn(fn(fn(fn(fn(fn(Game.newGame, 'X'), 9, '/'), 'X'), 9, '/'), 'X'), 9, '/'), 'X'), 9, '/'), 'X'), 9, '/', 'X')
+    assert(sc.frameScores == Seq(20, 20, 20, 20, 20, 20, 20, 20, 20, 20))
+    assert(sc.runningTotal == Seq(20, 40, 60, 80, 100, 120, 140, 160, 180, 200))
+    assert(sc.gameScore == 200)
+  }
+
+  it should "score a perfect game correctly" in {
+    val fn: (ScoreCard, Bowled, Bowled*) => ScoreCard = Game.score
+
+    val sc = fn(fn(fn(fn(fn(fn(fn(fn(fn(fn(Game.newGame, 'X'), 'X'), 'X'), 'X'), 'X'), 'X'), 'X'), 'X'), 'X'), 'X', 'X', 'X')
+    assert(sc.frameScores == Seq(30, 30, 30, 30, 30, 30, 30, 30, 30, 30))
+    assert(sc.runningTotal == Seq(30, 60, 90, 120, 150, 180, 210, 240, 270, 300))
+    assert(sc.gameScore == 300)
+
+  }
 }

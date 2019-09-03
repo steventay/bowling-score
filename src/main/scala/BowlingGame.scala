@@ -30,7 +30,7 @@ case class ScoreCard(frames: Seq[Frame] = Nil) {
   private def score(throws: Seq[Bowled], prev: Seq[Frame]): Frame = {
     val num = prev.headOption.map(_.num + 1).getOrElse(1)
 
-    if (throws.contains(Strike) || throws.contains(Spare) || throws.sum == 10) // case where spare is created with points directly
+    if (lastFrameNum + 1 != 10 && (throws.contains(Strike) || throws.contains(Spare) || throws.sum == 10))
       Frame(num, throws, Unscored)
     else {
       Frame(num, throws, convertPoints(throws).sum)
@@ -149,10 +149,10 @@ object BowlingGame {
       require(throws.size <= 1, "Only 2 throws allowed in a non-final frame!")
       if (t == Strike)
         require(throws.isEmpty, "Invalid score. No second throw is needed!")
+      require(!throws.contains(Strike), "Invalid score. You cannot score a strike on the second throw!")
     }
 
     require(t != Spare, s"Invalid score. You cannot score a spare on the first throw!")
-    require(!throws.contains(Strike), "Invalid score. You cannot score a strike on the second throw!")
 
 
     // Final frame validation
