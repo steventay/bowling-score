@@ -1,7 +1,7 @@
 # bowling-score
 Works through how a bowling game is scored. 
 
-##General Approach
+## General Approach
 1. Create suitable models / data structures
     - Core models include BowlingGame, ScoreCard and Frame     
 2. Focused on the validation of the scores
@@ -17,7 +17,7 @@ and iteratively work through the more challenging ones.
     - Scoring 200 points
     - Example from bowling.about.com
        
-##Scoring Algorithm
+## Scoring Algorithm
 - Breaks into 2 parts: current frame and previous frames
 - Tries to score current frame if it is an open frame otherwise it will wait for future scores.
 - For every new frame we walk through all previous frames and iteratively "re-score" the strikes and spares.
