@@ -15,7 +15,7 @@ case class ScoreCard(frames: Seq[Frame] = Nil) {
   def scoreFrame(throws: Seq[Bowled]): ScoreCard = {
     val prev = rescore(throws)
     val curFrame = score(throws, prev)
-    ScoreCard(prev :+ curFrame)
+    ScoreCard(curFrame +: prev)
   }
 
   /**
@@ -26,27 +26,32 @@ case class ScoreCard(frames: Seq[Frame] = Nil) {
    * @return frame with the current score
    */
   private def score(throws: Seq[Bowled], prev: Seq[Frame]): Frame = {
-    val num = prev.lastOption.map(_.num + 1).getOrElse(1)
+    val num = prev.headOption.map(_.num + 1).getOrElse(1)
 
-    if (throws.contains(Strike) || throws.contains(Spare))
-      Frame(num, throws, Unknown, Unknown)
+    if (throws.contains(Strike) || throws.contains(Spare) || throws.sum == 10) // case where spare is created with nums
+      Frame(num, throws, Unknown)
     else {
-      val total = prev.lastOption.map(_.total).getOrElse(0)
-      val points = convertPoints(throws)
-      Frame(num, throws, points.sum, total + points.sum)
+      Frame(num, throws, convertPoints(throws).sum)
     }
-
   }
 
   /**
-   * Rescores the previous frames in relation to the current thrown balls
+   * Re-scores the previous frames in relation to the current thrown balls
    *
    * @param throws rolls for the current frame
    * @return previous frames with scores calculated
    */
   private def rescore(throws: Seq[Bowled]): Seq[Frame] = {
-    this.frames // Simply return the last frames for now
+    val t = convertPoints(throws)
+    frames.foldLeft(Seq.empty[Frame]) { (scored, f) =>
+      scored :+ (if (f.isSpare && !f.isScored) Frame(f.num, f.result, 10 + t.head) else f)
+    }
   }
+
+  /**
+   * Gets the scores for all the frames
+   */
+  def frameScores: Seq[Points] = frames.map(_.score).reverse
 
   /**
    * Gets the latest game score
@@ -56,8 +61,25 @@ case class ScoreCard(frames: Seq[Frame] = Nil) {
   /**
    * Gets the cumulative scores across all the frames scored
    */
-  def runningTotal: Seq[Points] = frames.map(_.total)
+  def runningTotal: Seq[Points] = {
+    frames.foldRight(Seq.empty[Points]) { (f, total) =>
+      (f.score + total.headOption.getOrElse(0)) +: total
+    }.reverse
+  }
 
+}
+
+/**
+ * A frame is a round of a bowling and constitutes 1/10th of a game.
+ *
+ * @param num    sequence number of the frame. From 1 to 10
+ * @param result result of the frame from 1 to 2 throws
+ * @param score  score of the current frame
+ */
+case class Frame(num: Int, result: Seq[Bowled], score: Points) {
+  def isSpare: Boolean = result.contains(Spare)
+
+  def isScored: Boolean = score != Unknown
 }
 
 /**
@@ -138,14 +160,4 @@ object BowlingGame {
     bowled
   }
 }
-
-/**
- * A frame is a round of a bowling and constitutes 1/10th of a game.
- *
- * @param num    sequence number of the frame. From 1 to 10
- * @param result result of the frame from 1 to 2 throws
- * @param score  score of the current frame
- * @param total  running total of the game
- */
-case class Frame(num: Int, result: Seq[Bowled], score: Points, total: Points)
 

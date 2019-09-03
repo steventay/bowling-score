@@ -3,7 +3,7 @@ import org.scalatest.FlatSpec
 
 class TestBowlingSpec extends FlatSpec {
 
-  val Game = BowlingGame
+  val Game: BowlingGame.type = BowlingGame
 
   "A new bowling game" should "have an empty score card" in {
     assert(BowlingGame.newGame.frames.isEmpty)
@@ -58,10 +58,24 @@ class TestBowlingSpec extends FlatSpec {
     }
   }
 
+  "The game" should "convert notations correctly" in {
+    assert(Game.convertPoints(Seq(1, '/')) == Seq(1, 9))
+    assert(Game.convertPoints(Seq('-', 5)) == Seq(0, 5))
+    assert(Game.convertPoints(Seq('X')) == Seq(10))
+  }
+
   "The score card" should "score open frames correctly" in {
-    val fn: (ScoreCard, Bowled, Bowled *) => ScoreCard = Game.score
-    val sc = fn(fn(fn(fn(Game.newGame, 1, 2), 3, 4), 4, 5), '-', 5)
+    val fn: (ScoreCard, Bowled, Seq[Bowled]) => ScoreCard = Game.score
+    val sc = fn(fn(fn(fn(Game.newGame, 1, Seq(2)), 3, Seq(4)), 4, Seq(5)), '-', Seq(5))
     assert(sc.runningTotal == Seq(3, 10, 19, 24))
     assert(sc.gameScore == 24)
+  }
+
+  it should "score spare frames correctly" in {
+    val fn: (ScoreCard, Bowled, Seq[Bowled]) => ScoreCard = Game.score
+    val sc = fn(fn(fn(fn(Game.newGame, 1, Seq('/')), 2, Seq('/')), 3, Seq('/')), '-', Seq(5))
+    assert(sc.frameScores == Seq(12, 13, 10, 5))
+    assert(sc.runningTotal == Seq(12, 25, 35, 40))
+    assert(sc.gameScore == 40)
   }
 }
