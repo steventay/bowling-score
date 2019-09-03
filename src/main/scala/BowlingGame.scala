@@ -15,8 +15,8 @@ case class ScoreCard(frames: Seq[Frame] = Nil) {
    * @return updated scorecard with the current frame
    */
   def scoreFrame(throws: Seq[Bowled]): ScoreCard = {
-    val prev = rescore(throws)
-    val curFrame = score(throws, prev)
+    val curFrame = scoreCur(throws)
+    val prev = rescorePrev(throws)
     ScoreCard(curFrame +: prev)
   }
 
@@ -24,11 +24,10 @@ case class ScoreCard(frames: Seq[Frame] = Nil) {
    * Calculates the current frame score if possible
    *
    * @param throws rolls for the current frame
-   * @param prev   previous frame with scores calculated
    * @return frame with the current score
    */
-  private def score(throws: Seq[Bowled], prev: Seq[Frame]): Frame = {
-    val num = prev.headOption.map(_.num + 1).getOrElse(1)
+  private def scoreCur(throws: Seq[Bowled]): Frame = {
+    val num = frames.headOption.map(_.num + 1).getOrElse(1)
 
     if (lastFrameNum + 1 != 10 && (throws.contains(Strike) || throws.contains(Spare) || throws.sum == 10))
       Frame(num, throws, Unscored)
@@ -43,9 +42,9 @@ case class ScoreCard(frames: Seq[Frame] = Nil) {
    * @param throws rolls for the current frame
    * @return previous frames with scores calculated
    */
-  private def rescore(throws: Seq[Bowled]): Seq[Frame] = {
-    val t = convertPoints(throws ++ results)
-    val scf = frames.foldLeft(Seq.empty[Frame]) { (scored, f) =>
+  private def rescorePrev(throws: Seq[Bowled]): Seq[Frame] = {
+    frames.foldLeft(Seq.empty[Frame]) { (scored, f) =>
+      val t = convertPoints(resultsAfter(f.num) ++ throws)
       val sf = if (f.isScored) f else {
         (f.isStrike, f.isSpare) match {
           case (true, _) if t.size >= 2 => Frame(f.num, f.result, 10 + t.take(2).sum)
@@ -55,7 +54,6 @@ case class ScoreCard(frames: Seq[Frame] = Nil) {
       }
       scored :+ sf
     }
-    scf
   }
 
   /**
@@ -78,11 +76,11 @@ case class ScoreCard(frames: Seq[Frame] = Nil) {
   }
 
   /**
-   * Gets the scored results of all the previous frames
+   * Gets the scored results after the last frame
    */
-  def results: Seq[Bowled] = frames.flatMap(_.result)
+  def resultsAfter(frameNum:Int): Seq[Bowled] = frames.filter(_.num > frameNum).flatMap(_.result)
 
-  def lastFrameNum: Int = frames.headOption.map(_.num).getOrElse(1)
+  def lastFrameNum: Int = frames.headOption.map(_.num).getOrElse(0)
 
 }
 

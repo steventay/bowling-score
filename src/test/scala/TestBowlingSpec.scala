@@ -99,9 +99,9 @@ class TestBowlingSpec extends FlatSpec {
   it should "score strike frames correctly" in {
     val fn: (ScoreCard, Bowled, Bowled*) => ScoreCard = Game.score
     val sc = fn(fn(fn(fn(Game.newGame, 'X'), 'X'), 'X'), '-', 5)
-    assert(sc.frameScores == Seq(30, 30, 15, 5))
-    assert(sc.runningTotal == Seq(30, 60, 75, 80))
-    assert(sc.gameScore == 80)
+    assert(sc.frameScores == Seq(30, 20, 15, 5))
+    assert(sc.runningTotal == Seq(30, 50, 65, 70))
+    assert(sc.gameScore == 70)
     assert(sc.lastFrameNum == 4)
   }
 
@@ -129,6 +129,13 @@ class TestBowlingSpec extends FlatSpec {
     assert(sc.frameScores == Seq(30, 30, 30, 30, 30, 30, 30, 30, 30, 30))
     assert(sc.runningTotal == Seq(30, 60, 90, 120, 150, 180, 210, 240, 270, 300))
     assert(sc.gameScore == 300)
+  }
 
+  "The sample from liveabout.com" should "work" in {
+    val fn: (ScoreCard, Bowled, Bowled*) => ScoreCard = Game.score
+    val sc1 = fn(fn(fn(fn(fn(fn(fn(fn(fn(fn(Game.newGame, 'X'), 7, '/'), 7, 2), 9, '/'), 'X'), 'X'), 'X'), 2, 3), 6, '/'), 7, '/', 3)
+    assert(sc1.frameScores == Seq(20, 17, 9, 20, 30, 22, 15, 5, 17, 13))
+    assert(sc1.runningTotal == Seq(20, 37, 46, 66, 96, 118, 133, 138, 155, 168))
+    assert(sc1.gameScore == 168)
   }
 }
