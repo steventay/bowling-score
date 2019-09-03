@@ -9,52 +9,69 @@ class TestBowlingSpec extends FlatSpec {
     assert(BowlingGame.newGame.frames.isEmpty)
   }
 
+  val sc: ScoreCard = Game.newGame
+
   "A bowling game" should "pass valid scores" in {
-    Game.validate('-', '-')
-    Game.validate('X')
-    Game.validate(4, 5)
-    Game.validate('-', '/')
+    Game.validate(sc, '-', '-')
+    Game.validate(sc, 'X')
+    Game.validate(sc, 4, 5)
+    Game.validate(sc, '-', '/')
   }
 
-  it should "fail more than 2 throws" in {
+  it should "pass valid scores in a final frame" in {
+    val frames = (9 to 1 by -1).map { i => Frame(i, Seq('-', 5), 5) }
+    val sc = ScoreCard(frames)
+    Game.validate(sc, 'X', 5, 3)
+    Game.validate(sc, '5', '/', 3)
+  }
+
+  it should "fail more than 2 throws in the non-final frame" in {
     assertThrows[IllegalArgumentException] {
-      Game.validate(1, 2, 3)
+      Game.validate(sc, 1, 2, 3)
+    }
+  }
+
+  it should "fail more than 2 throws in the final frame if it isn't a strike or spare" in {
+    assertThrows[IllegalArgumentException] {
+      val frames = (9 to 1 by -1).map { i => Frame(i, Seq('-', 5), 5) }
+      val sc = ScoreCard(frames)
+      Game.validate(sc, 1, 2, 3)
     }
   }
 
   it should "fail when a spare is thrown in the first throw" in {
     assertThrows[IllegalArgumentException] {
-      Game.validate('/')
+      Game.validate(sc, '/')
     }
   }
 
   it should "fail when a strike is recorded in the second throw" in {
     assertThrows[IllegalArgumentException] {
-      Game.validate(5, 'X')
+      Game.validate(sc, 5, 'X')
     }
   }
 
   it should "fail when a strike is recorded but a second throw is scored" in {
     assertThrows[IllegalArgumentException] {
-      Game.validate('X', '-')
+      Game.validate(sc, 'X', '-')
     }
   }
 
   it should "fail when pins bowled is less than 0" in {
     assertThrows[IllegalArgumentException] {
-      Game.validate('X', -10)
+      Game.validate(sc, 'X', -10)
     }
   }
 
   it should "fail when pins bowled is more than 10" in {
     assertThrows[IllegalArgumentException] {
-      Game.validate('-', 20)
+      Game.validate(sc, '-', 20)
     }
   }
 
   it should "fail when total is more than 10" in {
     assertThrows[IllegalArgumentException] {
-      Game.validate(9, 8)
+      Game.validate(sc, 9, 8)
     }
   }
 
@@ -80,10 +97,11 @@ class TestBowlingSpec extends FlatSpec {
   }
 
   it should "score strike frames correctly" in {
-    val fn: (ScoreCard, Bowled, Bowled *) => ScoreCard = Game.score
+    val fn: (ScoreCard, Bowled, Bowled*) => ScoreCard = Game.score
     val sc = fn(fn(fn(fn(Game.newGame, 'X'), 'X'), 'X'), '-', 5)
     assert(sc.frameScores == Seq(30, 30, 15, 5))
     assert(sc.runningTotal == Seq(30, 60, 75, 80))
     assert(sc.gameScore == 80)
+    assert(sc.lastFrameNum == 4)
   }
 }

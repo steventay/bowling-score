@@ -3,8 +3,8 @@ import BowlingGame._
 import scala.annotation.tailrec
 
 /**
- * Contains a list of frame played. Initialises to an empty scorecard, i.e. no frames played and scores for each frame
- * entered.
+ * Contains a list of frame played.
+ * Initialises to an empty scorecard, i.e. no frames played and scores for each frame entered.
  */
 case class ScoreCard(frames: Seq[Frame] = Nil) {
 
@@ -66,7 +66,7 @@ case class ScoreCard(frames: Seq[Frame] = Nil) {
   /**
    * Gets the latest game score
    */
-  def gameScore: Points = frames.map(_.score).sum
+  def gameScore: Points = if (frames.exists(!_.isScored)) Unscored else frames.map(_.score).sum
 
   /**
    * Gets the cumulative scores across all the frames scored
@@ -81,6 +81,8 @@ case class ScoreCard(frames: Seq[Frame] = Nil) {
    * Gets the scored results of all the previous frames
    */
   def results: Seq[Bowled] = frames.flatMap(_.result)
+
+  def lastFrameNum: Int = frames.headOption.map(_.num).getOrElse(1)
 
 }
 
@@ -132,7 +134,7 @@ object BowlingGame {
    * @return updated score card of the frame, including the running total of the game
    */
   def score(sc: ScoreCard, t1: Bowled, throws: Bowled*): ScoreCard = {
-    validate(t1, throws: _*)
+    validate(sc, t1, throws: _*)
     sc.scoreFrame(t1 +: throws)
   }
 
@@ -142,18 +144,31 @@ object BowlingGame {
    * @param t      pins bowled in a single throw
    * @param throws additional throws by the player in a frame
    */
-  def validate(t: Bowled, throws: Bowled*): Unit = {
-    require(throws.size <= 1, "Only 2 throws allowed in a frame!") // Doesn't consider 10th frame yet.
+  def validate(sc: ScoreCard, t: Bowled, throws: Bowled*): Unit = {
+    if (sc.lastFrameNum + 1 != 10) {
+      require(throws.size <= 1, "Only 2 throws allowed in a non-final frame!")
+      if (t == Strike)
+        require(throws.isEmpty, "Invalid score. No second throw is needed!")
+    }
+
     require(t != Spare, s"Invalid score. You cannot score a spare on the first throw!")
     require(!throws.contains(Strike), "Invalid score. You cannot score a strike on the second throw!")
 
-    if (t == Strike)
-      require(throws.isEmpty, "Invalid score. No second throw is needed!")
+
+    // Final frame validation
+    if (sc.lastFrameNum + 1 == 10) {
+      if (t == Strike || throws.head == Spare)
+        require(throws.size == 2, s"${2 - throws.size} more throws required in the final frame!")
+      else
+        require(throws.size == 1, "Fill balls are only allowed for strikes and spares!")
+    }
 
     val bowled = convertPoints(t +: throws)
 
-    require(bowled.forall(ValidPoints.contains), "Invalid score. Minimum score is 0 and maximum score is 10")
-    require(bowled.sum <= 10, "Invalid score. Maximum bowl score is 10!")
+    if (sc.lastFrameNum + 1 != 10) {
+      require(bowled.sum <= 10, "Invalid score. Maximum bowl score is 10!")
+      require(bowled.forall(ValidPoints.contains), "Invalid score. Minimum score is 0 and maximum score is 10")
+    }
   }
 
   /**
