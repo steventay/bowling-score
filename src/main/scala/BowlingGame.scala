@@ -1,5 +1,7 @@
 import BowlingGame._
 
+import scala.annotation.tailrec
+
 /**
  * Contains a list of frame played. Initialises to an empty scorecard, i.e. no frames played and scores for each frame
  * entered.
@@ -28,8 +30,8 @@ case class ScoreCard(frames: Seq[Frame] = Nil) {
   private def score(throws: Seq[Bowled], prev: Seq[Frame]): Frame = {
     val num = prev.headOption.map(_.num + 1).getOrElse(1)
 
-    if (throws.contains(Strike) || throws.contains(Spare) || throws.sum == 10) // case where spare is created with nums
-      Frame(num, throws, Unknown)
+    if (throws.contains(Strike) || throws.contains(Spare) || throws.sum == 10) // case where spare is created with points directly
+      Frame(num, throws, Unscored)
     else {
       Frame(num, throws, convertPoints(throws).sum)
     }
@@ -42,10 +44,18 @@ case class ScoreCard(frames: Seq[Frame] = Nil) {
    * @return previous frames with scores calculated
    */
   private def rescore(throws: Seq[Bowled]): Seq[Frame] = {
-    val t = convertPoints(throws)
-    frames.foldLeft(Seq.empty[Frame]) { (scored, f) =>
-      scored :+ (if (f.isSpare && !f.isScored) Frame(f.num, f.result, 10 + t.head) else f)
+    val t = convertPoints(throws ++ results)
+    val scf = frames.foldLeft(Seq.empty[Frame]) { (scored, f) =>
+      val sf = if (f.isScored) f else {
+        (f.isStrike, f.isSpare) match {
+          case (true, _) if t.size >= 2 => Frame(f.num, f.result, 10 + t.take(2).sum)
+          case (_, true) => Frame(f.num, f.result, 10 + t.head)
+          case _ => f
+        }
+      }
+      scored :+ sf
     }
+    scf
   }
 
   /**
@@ -67,6 +77,11 @@ case class ScoreCard(frames: Seq[Frame] = Nil) {
     }.reverse
   }
 
+  /**
+   * Gets the scored results of all the previous frames
+   */
+  def results: Seq[Bowled] = frames.flatMap(_.result)
+
 }
 
 /**
@@ -79,7 +94,9 @@ case class ScoreCard(frames: Seq[Frame] = Nil) {
 case class Frame(num: Int, result: Seq[Bowled], score: Points) {
   def isSpare: Boolean = result.contains(Spare)
 
-  def isScored: Boolean = score != Unknown
+  def isStrike: Boolean = result.contains(Strike)
+
+  def isScored: Boolean = score != Unscored
 }
 
 /**
@@ -96,13 +113,7 @@ object BowlingGame {
   val Strike = 'X'
   val Spare = '/'
   val Miss = '-'
-  val Unknown = '_' // unknown score in the current frame
-
-  private val Notations = Map(
-    Miss -> 0,
-    Strike -> 10,
-    Spare -> -1
-  )
+  val Unscored = '_' //  no score in the current frame
 
   private val ValidPoints = 0 to 10
 
@@ -149,15 +160,24 @@ object BowlingGame {
    * Resolves annotated scores to pure points. Assumes valid scores!
    *
    * @param throws bowled scores
-   * @return bowled points for the first and subsequent throws
+   * @return bowled points
    */
   def convertPoints(throws: Seq[Bowled]): Seq[Points] = {
-    val b1 = Notations.getOrElse(throws.head.toChar, throws.head)
-    val bowled = (b1 +: throws.tail).map { b =>
-      if (b == Spare) 10 - b1 else
-        Notations.getOrElse(b.toChar, b)
+    @tailrec
+    def convert(t: Seq[Bowled], acc: Seq[Points]): Seq[Points] = {
+      if (t.isEmpty) acc
+      else {
+        val points = t.head match {
+          case Strike => 10
+          case Miss => 0
+          case Spare => 10 - acc.last
+          case p => p
+        }
+        convert(t.tail, acc :+ points)
+      }
     }
-    bowled
+
+    convert(throws, Seq.empty)
   }
 }
 

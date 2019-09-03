@@ -78,4 +78,12 @@ class TestBowlingSpec extends FlatSpec {
     assert(sc.runningTotal == Seq(12, 25, 35, 40))
     assert(sc.gameScore == 40)
   }
+
+  it should "score strike frames correctly" in {
+    val fn: (ScoreCard, Bowled, Bowled *) => ScoreCard = Game.score
+    val sc = fn(fn(fn(fn(Game.newGame, 'X'), 'X'), 'X'), '-', 5)
+    assert(sc.frameScores == Seq(30, 30, 15, 5))
+    assert(sc.runningTotal == Seq(30, 60, 75, 80))
+    assert(sc.gameScore == 80)
+  }
 }
