@@ -146,4 +146,11 @@ class TestBowlingSpec extends FlatSpec {
     assert(sc1.runningTotal == Seq(20, 37, 46, 66, 96, 118, 133, 138, 155, 168))
     assert(sc1.gameScore == 168)
   }
+
+  "Another sample" should "also work" in {
+    val fn: (ScoreCard, Bowled, Bowled*) => ScoreCard = Game.score
+    val sc = fn(fn(fn(fn(fn(fn(fn(fn(fn(fn(Game.newGame, 1, 4), 4, 5), 6, '/'), 5, '/'), 'X'), '-', 1), 7, '/'), 6, '/'), 'X'), 2, '/', 6)
+    assert(sc.runningTotal == Seq(5, 14, 29, 49, 60, 61, 77, 97, 117, 133))
+    assert(sc.gameScore == 133)
+  }
 }
