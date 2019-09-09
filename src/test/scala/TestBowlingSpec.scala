@@ -19,7 +19,7 @@ class TestBowlingSpec extends FlatSpec {
   }
 
   it should "pass valid scores in a final frame" in {
-    val frames = (9 to 1 by -1).map { i => Frame(i, Seq('-', 5), 5) }
+    val frames = (9 to 1 by -1).map { i => Frame(i, Seq('-', 5), Some(5)) }
     val sc = ScoreCard(frames)
     Game.validate(sc, 'X', 5, 3)
     Game.validate(sc, '5', '/', 3)
@@ -33,7 +33,7 @@ class TestBowlingSpec extends FlatSpec {
 
   it should "fail more than 2 throws in the final frame if it isn't a strike or spare" in {
     assertThrows[IllegalArgumentException] {
-      val frames = (9 to 1 by -1).map { i => Frame(i, Seq('-', 5), 5) }
+      val frames = (9 to 1 by -1).map { i => Frame(i, Seq('-', 5), Some(5)) }
       val sc = ScoreCard(frames)
       Game.validate(sc, 1, 2, 3)
     }
@@ -41,7 +41,7 @@ class TestBowlingSpec extends FlatSpec {
 
   it should "fail when we try to enter a score after the final frame" in {
     assertThrows[AssertionError] {
-      val frames = (10 to 1 by -1).map { i => Frame(i, Seq('-', 5), 5) }
+      val frames = (10 to 1 by -1).map { i => Frame(i, Seq('-', 5), Some(5)) }
       val sc = ScoreCard(frames)
       Game.validate(sc, 1, 2, 3)
     }
@@ -111,7 +111,7 @@ class TestBowlingSpec extends FlatSpec {
   }
 
   it should "score last frames correctly" in {
-    val frames = (9 to 1 by -1).map { i => Frame(i, Seq('-', '-'), 0) }
+    val frames = (9 to 1 by -1).map { i => Frame(i, Seq('-', '-'), Some(0)) }
     val sc = Game.score(ScoreCard(frames), 'X', 'X', 'X')
     assert(sc.frameScores == Seq(0, 0, 0, 0, 0, 0, 0, 0, 0, 30))
     assert(sc.runningTotal == Seq(0, 0, 0, 0, 0, 0, 0, 0, 0, 30))

@@ -15,45 +15,21 @@ case class ScoreCard(frames: Seq[Frame] = Nil) {
    * @return updated scorecard with the current frame
    */
   def scoreFrame(throws: Seq[Bowled]): ScoreCard = {
-    val curFrame = scoreCur(throws)
-    val prev = rescorePrev(throws)
-    ScoreCard(curFrame +: prev)
-  }
-
-  /**
-   * Calculates the current frame score if possible
-   *
-   * @param throws rolls for the current frame
-   * @return frame with the current score
-   */
-  private def scoreCur(throws: Seq[Bowled]): Frame = {
-    val num = frames.headOption.map(_.num + 1).getOrElse(1)
-
-    if (lastFrameNum + 1 != 10 && (throws.contains(Strike) || throws.contains(Spare) || throws.sum == 10))
-      Frame(num, throws, Unscored)
-    else {
-      Frame(num, throws, convertPoints(throws).sum)
-    }
-  }
-
-  /**
-   * Re-scores the previous frames in relation to the current thrown balls
-   *
-   * @param throws rolls for the current frame
-   * @return previous frames with scores calculated
-   */
-  private def rescorePrev(throws: Seq[Bowled]): Seq[Frame] = {
-    frames.foldLeft(Seq.empty[Frame]) { (scored, f) =>
-      val t = convertPoints(resultsAfter(f.num) ++ throws)
-      val sf = if (f.isScored) f else {
-        (f.isStrike, f.isSpare) match {
-          case (true, _) if t.size >= 2 => Frame(f.num, f.result, 10 + t.take(2).sum)
-          case (_, true) => Frame(f.num, f.result, 10 + t.head)
-          case _ => f
+    @tailrec
+    def rescore(all: Seq[Frame], calFrames: Seq[Frame], thrown: Seq[Bowled]): Seq[Frame] = {
+      if (all.isEmpty) calFrames
+      else {
+        val head = all.head
+        val cf = head match {
+          case f: Strike if thrown.size >= 2 => Frame(f.num, f.result, Some(thrown.take(2).sum))
+          case f: Spare if thrown.nonEmpty => Frame(f.num, f.result, Some(thrown.head))
+          case f => f
         }
+        rescore(all.tail, calFrames :+ cf, cf.bowled ++ thrown)
       }
-      scored :+ sf
     }
+
+    ScoreCard(rescore(Frame(lastFrameNum + 1, throws) +: frames, Seq.empty, Seq.empty))
   }
 
   /**
@@ -64,7 +40,7 @@ case class ScoreCard(frames: Seq[Frame] = Nil) {
   /**
    * Gets the latest game score
    */
-  def gameScore: Points = if (frames.exists(!_.isScored)) Unscored else frames.map(_.score).sum
+  def gameScore: Points = if (frames.exists(!_.evaled)) Unscored else frames.map(_.score).sum
 
   /**
    * Gets the cumulative scores across all the frames scored
@@ -86,17 +62,37 @@ case class ScoreCard(frames: Seq[Frame] = Nil) {
 
 /**
  * A frame is a round of a bowling and constitutes 1/10th of a game.
- *
- * @param num    sequence number of the frame. From 1 to 10
- * @param result result of the frame from 1 to 2 throws
- * @param score  score of the current frame
  */
-case class Frame(num: Int, result: Seq[Bowled], score: Points) {
-  def isSpare: Boolean = result.contains(Spare)
+sealed trait Frame {
+  val num: Int
 
-  def isStrike: Boolean = result.contains(Strike)
+  val result: Seq[Bowled]
 
-  def isScored: Boolean = score != Unscored
+  val evaled: Boolean
+
+  val score: Points
+
+  val bowled: Seq[Points] = convertPoints(result)
+}
+
+case class Open(num: Int, result: Seq[Bowled], score: Points, evaled: Boolean = true) extends Frame
+case class Strike(num: Int, result: Seq[Bowled], score: Points, evaled: Boolean) extends Frame
+case class Spare(num: Int, result: Seq[Bowled], score: Points, evaled: Boolean) extends Frame
+case class Final(num: Int, result: Seq[Bowled], score: Points, evaled: Boolean = true) extends Frame
+
+object Frame {
+  def apply(num: Int, result: Seq[Bowled], bonus: Option[Points] = None): Frame = {
+    val points = convertPoints(result).sum
+    val score = bonus.getOrElse(0) + points
+    val evaled = bonus.isDefined
+    result match {
+      case Seq(BowlingGame.Strike) | Seq(10) => Strike(num, result, if (!evaled) 10 else score, evaled)
+      case Seq(_, BowlingGame.Spare) => Spare(num, result, if (!evaled) 10 else score, evaled)
+      case Seq(a, b) if a + b == 10 => Spare(num, result, if (!evaled) 10 else score, evaled)
+      case _ if num == 10 => Final(num, result, score)
+      case _ => Open(num, result, score)
+    }
+  }
 }
 
 /**
