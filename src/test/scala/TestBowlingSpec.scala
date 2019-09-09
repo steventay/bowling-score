@@ -1,5 +1,5 @@
-import BowlingGame.Bowled
 import org.scalatest.FlatSpec
+import BowlingGame.{score => fn}
 
 class TestBowlingSpec extends FlatSpec {
 
@@ -90,22 +90,19 @@ class TestBowlingSpec extends FlatSpec {
   }
 
   "The score card" should "score open frames correctly" in {
-    val fn: (ScoreCard, Bowled, Seq[Bowled]) => ScoreCard = Game.score
-    val sc = fn(fn(fn(fn(Game.newGame, 1, Seq(2)), 3, Seq(4)), 4, Seq(5)), '-', Seq(5))
+    val sc = fn(fn(fn(fn(Game.newGame, 1,2), 3, 4), 4, 5), '-', 5)
     assert(sc.runningTotal == Seq(3, 10, 19, 24))
     assert(sc.gameScore == 24)
   }
 
   it should "score spare frames correctly" in {
-    val fn: (ScoreCard, Bowled, Seq[Bowled]) => ScoreCard = Game.score
-    val sc = fn(fn(fn(fn(Game.newGame, 1, Seq('/')), 2, Seq('/')), 3, Seq('/')), '-', Seq(5))
+    val sc = fn(fn(fn(fn(Game.newGame, 1, '/'), 2, '/'), 3, '/'), '-', 5)
     assert(sc.frameScores == Seq(12, 13, 10, 5))
     assert(sc.runningTotal == Seq(12, 25, 35, 40))
     assert(sc.gameScore == 40)
   }
 
   it should "score strike frames correctly" in {
-    val fn: (ScoreCard, Bowled, Bowled*) => ScoreCard = Game.score
     val sc = fn(fn(fn(fn(Game.newGame, 'X'), 'X'), 'X'), '-', 5)
     assert(sc.frameScores == Seq(30, 20, 15, 5))
     assert(sc.runningTotal == Seq(30, 50, 65, 70))
@@ -122,8 +119,6 @@ class TestBowlingSpec extends FlatSpec {
   }
 
   it should "score a 200 point game correctly" in {
-    val fn: (ScoreCard, Bowled, Bowled*) => ScoreCard = Game.score
-
     val sc = fn(fn(fn(fn(fn(fn(fn(fn(fn(fn(Game.newGame, 'X'), 9, '/'), 'X'), 9, '/'), 'X'), 9, '/'), 'X'), 9, '/'), 'X'), 9, '/', 'X')
     assert(sc.frameScores == Seq(20, 20, 20, 20, 20, 20, 20, 20, 20, 20))
     assert(sc.runningTotal == Seq(20, 40, 60, 80, 100, 120, 140, 160, 180, 200))
@@ -131,8 +126,6 @@ class TestBowlingSpec extends FlatSpec {
   }
 
   it should "score a perfect game correctly" in {
-    val fn: (ScoreCard, Bowled, Bowled*) => ScoreCard = Game.score
-
     val sc = fn(fn(fn(fn(fn(fn(fn(fn(fn(fn(Game.newGame, 'X'), 'X'), 'X'), 'X'), 'X'), 'X'), 'X'), 'X'), 'X'), 'X', 'X', 'X')
     assert(sc.frameScores == Seq(30, 30, 30, 30, 30, 30, 30, 30, 30, 30))
     assert(sc.runningTotal == Seq(30, 60, 90, 120, 150, 180, 210, 240, 270, 300))
@@ -140,7 +133,6 @@ class TestBowlingSpec extends FlatSpec {
   }
 
   "The sample from liveabout.com" should "work" in {
-    val fn: (ScoreCard, Bowled, Bowled*) => ScoreCard = Game.score
     val sc1 = fn(fn(fn(fn(fn(fn(fn(fn(fn(fn(Game.newGame, 'X'), 7, '/'), 7, 2), 9, '/'), 'X'), 'X'), 'X'), 2, 3), 6, '/'), 7, '/', 3)
     assert(sc1.frameScores == Seq(20, 17, 9, 20, 30, 22, 15, 5, 17, 13))
     assert(sc1.runningTotal == Seq(20, 37, 46, 66, 96, 118, 133, 138, 155, 168))
@@ -148,7 +140,6 @@ class TestBowlingSpec extends FlatSpec {
   }
 
   "Another sample" should "also work" in {
-    val fn: (ScoreCard, Bowled, Bowled*) => ScoreCard = Game.score
     val sc = fn(fn(fn(fn(fn(fn(fn(fn(fn(fn(Game.newGame, 1, 4), 4, 5), 6, '/'), 5, '/'), 'X'), '-', 1), 7, '/'), 6, '/'), 'X'), 2, '/', 6)
     assert(sc.runningTotal == Seq(5, 14, 29, 49, 60, 61, 77, 97, 117, 133))
     assert(sc.gameScore == 133)
